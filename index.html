@@ -239,12 +239,15 @@ function populateImpact(){renderImpactTable()}
 function inheritedDensityKgM3(){let rho=Number($('#density')?.value);return rho>0?rho:NaN}
 function impactInputs(){let patm=Number($('#impactPatm').value),rhoa=Number($('#impactRhoa').value),mu=Number($('#impactMu').value),h=Number($('#impactH').value),g=Number($('#impactG').value);return{patm,rhoa,mu,h,g,gamma:mu/rhoa}}
 function impactVelocityD43(dpUm,pb,rhop,q){let dp=dpUm*1e-6,P=q.patm+pb*100000,S=rhop/q.rhoa;if(!(dp>0&&P>0&&q.rhoa>0&&q.mu>0&&q.h>0&&q.g>0&&S>1))return{v:NaN,P,S,nd13:NaN,nv13:NaN};let nd13=dp*Math.cbrt(4*q.g*(S-1)/(3*q.gamma*q.gamma));let nv13=.02*Math.pow(P/(q.rhoa*q.g*q.h),.9)/(Math.pow(S-1,.4)*Math.pow(nd13,.4));let v=nv13/Math.cbrt(3/(4*q.g*q.gamma*(S-1)));return{v,P,S,nd13,nv13}}
+function impactRowKey(item){return `${item.role||'Corrected target'}\u0000${item.set?.name||''}`}
 function syncAnalysisToImpact(){
+  captureVelocityInputs?.();
+  let previous=new Map(impactCorrectedSets.map(item=>[impactRowKey(item),{pressure:item.pressure,density:item.density}]));
   let batch=$('#processMode').value==='batch',rhoDefault=inheritedDensityKgM3(),ri=Number($('#refSet').value),ref=sets[ri];
   let targets=batch?batchResults.map(r=>({set:r.corrected,density:(Number(r.density)>0?r.density:rhoDefault),role:'Corrected target',debrisVolume:r.debrisVolume,debrisMean:r.debrisMean})):(correction?(()=>{let d=debrisMetrics(correction.corrected,correction.refY,correction.cx);return[{set:correction.corrected,density:rhoDefault,role:'Corrected target',debrisVolume:d.volume,debrisMean:d.mean}]})():[]);
   if(!ref||!targets.length){impactCorrectedSets=[];renderImpactTable();return}
   let incoming=[{set:ref,density:rhoDefault,role:'Reference',debrisVolume:null,debrisMean:null},...targets];
-  impactCorrectedSets=incoming.map(item=>{let copy={name:item.set.name,x:item.set.x.slice(),y:item.set.y.slice()};normalizeDiscretePSD(copy);return{set:copy,density:item.density,pressure:parsedPressure(copy.name),role:item.role,debrisVolume:item.debrisVolume,debrisMean:item.debrisMean}});
+  impactCorrectedSets=incoming.map(item=>{let copy={name:item.set.name,x:item.set.x.slice(),y:item.set.y.slice()};normalizeDiscretePSD(copy);let key=impactRowKey({role:item.role,set:copy}),saved=previous.get(key);return{set:copy,density:saved&&Number(saved.density)>0?saved.density:item.density,pressure:saved&&Number.isFinite(Number(saved.pressure))?Number(saved.pressure):parsedPressure(copy.name),role:item.role,debrisVolume:item.debrisVolume,debrisMean:item.debrisMean}});
   renderImpactTable();
 }
 function moveImpactRow(index,direction){let next=index+direction;if(index===0||next<1||next>=impactCorrectedSets.length)return;[impactCorrectedSets[index],impactCorrectedSets[next]]=[impactCorrectedSets[next],impactCorrectedSets[index]];renderImpactTable()}
@@ -357,13 +360,13 @@ function restoreAnalysisInstance(x){
  Object.keys(derivedViews).forEach(k=>delete derivedViews[k]);if(x.derivedViews)Object.assign(derivedViews,cloneJSON(x.derivedViews));
  applyControlState(x.controls);renderList();populateAnalysis();applyControlState(x.controls);
  correction=savedCorrection;batchResults=savedBatchResults;
- let isBatch=$('#processMode').value==='batch';$('#singleTargetBox').hidden=isBatch;$('#batchTargetBox').hidden=!isBatch;$('#batchResults').hidden=!isBatch||!batchResults.length;
- if(isBatch&&batchResults.length)renderBatchResultsTable();
- draw();drawCorrection();renderLiveTab2Legend();
+ let isBatch=$('#processMode').value==='batch';$('#singleTargetBox').hidden=isBatch;$('#batchTargetBox').hidden=!isBatch;$('#batchResults').hidden=!isBatch||!batchResults.length;if(isBatch&&batchResults.length)renderBatchResultsTable();
+ draw();drawCorrection();renderLiveTab2Legend();updateStats([...selected]);
+ let tab=document.querySelector(`.tabbtn[data-tab="${x.activeTab}"]`)||document.querySelector('.tabbtn[data-tab="plotPage"]');tab.click();
+ // Tab activation can rebuild downstream rows, so restore velocity inputs last.
  impactCorrectedSets=savedImpactCorrectedSets;impactResults=savedImpactResults;applyControlState(x.controls);renderImpactTable();calculateImpact(false);
- updateStats([...selected]);updateAudit();
- let tab=document.querySelector(`.tabbtn[data-tab="${x.activeTab}"]`)||document.querySelector('.tabbtn[data-tab="plotPage"]');tab.click();if(x.activeTab==='plotsPage')setTimeout(drawDerivedPlots,40);
- setDirty(false);$('#instanceStatus').textContent=`Loaded instance saved ${x.savedAt||'at an unknown time'}: ${sets.length} PSD series, ${impactResults.length} velocity rows.`
+ if(x.activeTab==='plotsPage')setTimeout(drawDerivedPlots,40);updateAudit();setDirty(false);
+ $('#instanceStatus').textContent=`Loaded instance saved ${x.savedAt||'at an unknown time'}: ${sets.length} PSD series, ${impactResults.length} velocity rows.`
 }
 async function loadAnalysisInstance(file){try{let text=await file.text(),x=JSON.parse(text);restoreAnalysisInstance(x)}catch(e){console.error(e);$('#instanceStatus').textContent='Instance could not be loaded: '+e.message}}
 ['logy','mainYMin','mainYMax'].forEach(id=>$('#'+id).addEventListener('input',draw));['analysisLogY','analysisYMin','analysisYMax'].forEach(id=>$('#'+id).addEventListener('input',drawCorrection));['debrisRegressionCount','debrisRegressionSide','ssaRegressionCount','ssaRegressionSide'].forEach(id=>$('#'+id).addEventListener('input',drawDerivedPlots));setupDerivedPlots();['plot1','plot2','plot3'].forEach((p,i)=>['XScale','XMin','XMax','YScale','YMin','YMax'].forEach(k=>$('#'+p+k).onchange=()=>{delete derivedViews[['velocityPressureChart','debrisEnergyChart','ssaDebrisChart'][i]];redrawDerived()}));$('#resetPlot1').onclick=()=>resetDerivedView('velocityPressureChart');$('#resetPlot2').onclick=()=>resetDerivedView('debrisEnergyChart');$('#resetPlot3').onclick=()=>resetDerivedView('ssaDebrisChart');$('#exportPlot1Csv').onclick=()=>exportDerivedPlotCsv(1);$('#exportPlot2Csv').onclick=()=>exportDerivedPlotCsv(2);$('#exportPlot3Csv').onclick=()=>exportDerivedPlotCsv(3);$('#saveInstance').onclick=saveAnalysisInstance;$('#loadInstance').onclick=()=>$('#instanceFile').click();$('#instanceFile').onchange=e=>{let f=e.target.files&&e.target.files[0];if(f)loadAnalysisInstance(f);e.target.value=''};
