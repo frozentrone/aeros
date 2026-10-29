@@ -475,4 +475,29 @@ function initEnhancements(){configureAccessibility();applyInputValidation();upda
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initEnhancements);else initEnhancements();
 </script>
 <footer class="appCredit"><strong>Created by WPG</strong>, University of Leeds.</footer>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('./service-worker.js', { scope: './' });
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        if (!worker) return;
+
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            const notice = document.createElement('button');
+            notice.className = 'pwa-update-notice';
+            notice.textContent = 'Update available - reload';
+            notice.addEventListener('click', () => location.reload());
+            document.body.appendChild(notice);
+          }
+        });
+      });
+    } catch (error) {
+      console.warn('Service worker registration failed:', error);
+    }
+  });
+}
+</script>
 </body></html>
