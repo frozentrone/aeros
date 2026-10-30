@@ -327,29 +327,14 @@ async function saveAnalysisInstance(){
   try{
     const snapshot=instanceSnapshot();
     const text=JSON.stringify(snapshot,null,2);
+    if(!text||!text.trim())throw new Error('Generated instance is empty');
     const blob=new Blob([text],{type:'application/json;charset=utf-8'});
     const suggestedName=safeInstanceName();
-    if(!window.showSaveFilePicker){
-      $('#instanceStatus').textContent='Save As is unavailable in this preview. Download the HTML app and open it directly in Microsoft Edge or Google Chrome.';
-      alert('This embedded preview does not allow the Save As location picker. Download the HTML app, open it directly in Microsoft Edge or Google Chrome, and click Save instance again.');
-      return;
-    }
-    const handle=await window.showSaveFilePicker({
-      suggestedName,
-      types:[{description:'Aero S Grindability Analyser instance',accept:{'application/json':['.json']}}],
-      excludeAcceptAllOption:false
-    });
-    const writable=await handle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-    setDirty(false);
-    aeroToast('Instance saved successfully.','ok');
-    $('#instanceStatus').textContent=`Instance saved as ${handle.name}: ${snapshot.sets.length} PSD series, ${snapshot.impactResults.length} velocity rows.`;
-  }catch(e){
-    if(e&&e.name==='AbortError'){$('#instanceStatus').textContent='Save cancelled.';return}
-    console.error(e);
-    $('#instanceStatus').textContent='Instance could not be saved: '+e.message;
-  }
+    const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if(isMobile){downloadBlob(blob,suggestedName);setDirty(false);aeroToast('Instance saved successfully.','ok');$('#instanceStatus').textContent=`Instance downloaded: ${snapshot.sets.length} PSD series, ${snapshot.impactResults.length} velocity rows.`;return}
+    if(window.showSaveFilePicker){const handle=await window.showSaveFilePicker({suggestedName,types:[{description:'Aero S Grindability Analyser instance',accept:{'application/json':['.json']}}],excludeAcceptAllOption:false});const writable=await handle.createWritable();await writable.write(text);await writable.close();setDirty(false);aeroToast('Instance saved successfully.','ok');$('#instanceStatus').textContent=`Instance saved as ${handle.name}: ${snapshot.sets.length} PSD series, ${snapshot.impactResults.length} velocity rows.`;return}
+    downloadBlob(blob,suggestedName);setDirty(false);aeroToast('Instance downloaded successfully.','ok');
+  }catch(e){if(e&&e.name==='AbortError'){ $('#instanceStatus').textContent='Save cancelled.'; return } console.error(e); $('#instanceStatus').textContent='Instance could not be saved: '+e.message}
 }
 function validateInstance(x){if(!x||!['PSD Plot Explorer instance','Aero S Grindability Analyser instance'].includes(x.format))throw new Error('Not an Aero S Grindability Analyser instance file.');if(x.version!==INSTANCE_VERSION)throw new Error(`Unsupported instance version: ${x.version}`);if(!Array.isArray(x.sets)||!Array.isArray(x.selected)||!Array.isArray(x.impactCorrectedSets)||!Array.isArray(x.impactResults))throw new Error('Instance file is incomplete or damaged.')}
 function restoreAnalysisInstance(x){
@@ -367,7 +352,7 @@ function restoreAnalysisInstance(x){
  let tab=document.querySelector(`.tabbtn[data-tab="${x.activeTab}"]`)||document.querySelector('.tabbtn[data-tab="plotPage"]');tab.click();if(x.activeTab==='plotsPage')setTimeout(drawDerivedPlots,40);
  setDirty(false);$('#instanceStatus').textContent=`Loaded instance saved ${x.savedAt||'at an unknown time'}: ${sets.length} PSD series, ${impactResults.length} velocity rows.`
 }
-async function loadAnalysisInstance(file){try{let text=await file.text(),x=JSON.parse(text);restoreAnalysisInstance(x)}catch(e){console.error(e);$('#instanceStatus').textContent='Instance could not be loaded: '+e.message}}
+async function loadAnalysisInstance(file){try{let text=await file.text();if(!text.trim())throw new Error('Selected instance file is empty');let x=JSON.parse(text);restoreAnalysisInstance(x)}catch(e){console.error(e);$('#instanceStatus').textContent='Instance could not be loaded: '+e.message}}
 ['logy','mainYMin','mainYMax'].forEach(id=>$('#'+id).addEventListener('input',draw));['analysisLogY','analysisYMin','analysisYMax'].forEach(id=>$('#'+id).addEventListener('input',drawCorrection));['debrisRegressionCount','debrisRegressionSide','ssaRegressionCount','ssaRegressionSide'].forEach(id=>$('#'+id).addEventListener('input',drawDerivedPlots));setupDerivedPlots();['plot1','plot2','plot3'].forEach((p,i)=>['XScale','XMin','XMax','YScale','YMin','YMax'].forEach(k=>$('#'+p+k).onchange=()=>{delete derivedViews[['velocityPressureChart','debrisEnergyChart','ssaDebrisChart'][i]];redrawDerived()}));$('#resetPlot1').onclick=()=>resetDerivedView('velocityPressureChart');$('#resetPlot2').onclick=()=>resetDerivedView('debrisEnergyChart');$('#resetPlot3').onclick=()=>resetDerivedView('ssaDebrisChart');$('#exportPlot1Csv').onclick=()=>exportDerivedPlotCsv(1);$('#exportPlot2Csv').onclick=()=>exportDerivedPlotCsv(2);$('#exportPlot3Csv').onclick=()=>exportDerivedPlotCsv(3);$('#saveInstance').onclick=saveAnalysisInstance;$('#loadInstance').onclick=()=>$('#instanceFile').click();$('#instanceFile').onchange=e=>{let f=e.target.files&&e.target.files[0];if(f)loadAnalysisInstance(f);e.target.value=''};
 document.querySelectorAll('.tabbtn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabbtn').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tabpage').forEach(x=>x.classList.toggle('active',x.id===b.dataset.tab));if(b.dataset.tab==='analysisPage'){populateAnalysis();setTimeout(()=>{drawCorrection();renderLiveTab2Legend()},30)}if(b.dataset.tab==='impactPage'){populateImpact();setTimeout(calculateImpact,30)}if(b.dataset.tab==='plotsPage'){setTimeout(drawDerivedPlots,30)}});['impactPatm','impactRhoa','impactMu','impactH','impactG'].forEach(id=>$('#'+id).onchange=calculateImpact);$('#impactCalculate').onclick=calculateImpact;$('#impactCsv').onclick=exportImpact;$('#refSet').onchange=()=>{calculateCorrection();renderBatchTargets();batchResults=[];$('#batchResults').hidden=true};$('#targetSet').onchange=calculateCorrection;$('#strength').oninput=()=>{$('#strengthVal').textContent=$('#strength').value+'%';calculateCorrection()};$('#crossMethod').onchange=()=>{let m=$('#crossMethod').value;$('#manualCrossBox').hidden=m!=='manual';$('#shiftBox').hidden=m!=='shift';calculateCorrection()};['crossValue','shiftTolerance','maxShifts'].forEach(id=>{let el=$('#'+id);if(el)el.onchange=calculateCorrection});$('#redistribute').onchange=calculateCorrection;$('#plotDensity').oninput=()=>{let v=$('#plotDensity').value;if(Number(v)>0)$('#density').value=v;updateStats([...selected])};$('#density').onchange=()=>{if(Number($('#density').value)>0)$('#plotDensity').value=$('#density').value;updateStats([...selected]);calculateCorrection();batchResults=[];$('#batchResults').hidden=true};$('#processMode').onchange=setProcessMode;$('#refSet').onchange=()=>{$('#processMode').value==='batch'?renderBatchTargets():calculateCorrection()};$('#targetSet').onchange=calculateCorrection;$('#batchAll').onclick=()=>{document.querySelectorAll('#batchList input').forEach(x=>x.checked=true);runBatchCorrection()};$('#batchNone').onclick=()=>{document.querySelectorAll('#batchList input').forEach(x=>x.checked=false);runBatchCorrection()};
 
