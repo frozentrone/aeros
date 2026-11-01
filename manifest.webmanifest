@@ -2,42 +2,18 @@
   "id": "/aeros/",
   "name": "Aero S Grindability Analyser",
   "short_name": "Aero S Analyser",
-  "description": "Offline-capable Aero S grindability analysis for PSD correction, velocity estimation and breakage analysis.",
+  "description": "Offline-capable Aero S grindability analysis for PSD correction, velocity estimation, breakage analysis and saved-instance comparison.",
   "start_url": "/aeros/",
   "scope": "/aeros/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f4f7fb",
   "theme_color": "#0f4c81",
-  "categories": [
-    "science",
-    "utilities",
-    "education"
-  ],
+  "categories": ["science", "utilities", "education"],
   "icons": [
-    {
-      "src": "/aeros/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/aeros/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/aeros/icons/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/aeros/icons/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    {"src":"/aeros/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/aeros/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"/aeros/icons/icon-maskable-192.png","sizes":"192x192","type":"image/png","purpose":"maskable"},
+    {"src":"/aeros/icons/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
   ]
 }
