@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME = "aero-s-analyser-v1-3-0";
+const CACHE_NAME = "aero-s-analyser-v1-6-0";
 const CACHE_PREFIX = "aero-s-analyser-";
 const APP_SHELL = [
   "/aeros/", "/aeros/index.html", "/aeros/manifest.webmanifest", "/aeros/offline.html", "/aeros/version.json", "/aeros/favicon.png",
