@@ -1,2 +1,2 @@
-Aero S Grindability Analyser v1.9.4
-Plot refinement: major and minor gridlines darkened with major lines remaining darker; scientific data layers are clipped to the closed plot rectangle during pan/zoom, including markers, connecting lines, regressions and x-intercept graphics. Legends, ticks and axis labels remain rendered in their intended layers.
+Aero S Grindability Analyser v1.9.7
+Axis-title positioning patch: scientific X and Y titles are now positioned from the actual plot rectangle and measured Y tick-label width rather than fixed canvas coordinates. Normal and expanded Breakage Analysis/Comparison plots therefore retain consistent title-to-axis spacing as plot size changes.
