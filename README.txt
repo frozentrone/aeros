@@ -1,2 +1,2 @@
-Aero S Grindability Analyser v1.9.7
-Axis-title positioning patch: scientific X and Y titles are now positioned from the actual plot rectangle and measured Y tick-label width rather than fixed canvas coordinates. Normal and expanded Breakage Analysis/Comparison plots therefore retain consistent title-to-axis spacing as plot size changes.
+Aero S v2.1.10
+Dataset-list refresh fix. After Clear data and Clear instance reset the underlying state, both now explicitly run renderList(), the same normal list-render routine used by the Averages only control, then refresh PSD metrics and PSD Correction selectors. v2.1.9 reset/autosave handling and v2.1.8 PSD Correction initialisation/order fixes are retained.
